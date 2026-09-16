@@ -1,0 +1,627 @@
+--[[
+    ╔══════════════════════════════════════════════╗
+    ║      REYFIELD SCRIPT - noXis RED EDITION     ║
+    ║   Freecam | Lock | Move | Emote | Minimize   ║
+    ║            Layout: LANDSCAPE                 ║
+    ╚══════════════════════════════════════════════╝
+]]
+
+-- ============================================
+-- SERVICES
+-- ============================================
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local GuiService = game:GetService("GuiService")
+local TweenService = game:GetService("TweenService")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+-- ============================================
+-- WARNA TEMA MERAH-HITAM
+-- ============================================
+local C = {
+    BG         = Color3.fromRGB(10, 10, 10),
+    Panel      = Color3.fromRGB(20, 20, 20),
+    Header     = Color3.fromRGB(25, 5, 5),
+    Red        = Color3.fromRGB(220, 20, 20),
+    DarkRed    = Color3.fromRGB(140, 10, 10),
+    Crimson    = Color3.fromRGB(255, 50, 50),
+    White      = Color3.fromRGB(255, 255, 255),
+    TextRed    = Color3.fromRGB(255, 80, 80),
+    Gray       = Color3.fromRGB(180, 180, 180),
+    BtnOff     = Color3.fromRGB(40, 40, 40),
+    BtnOn      = Color3.fromRGB(200, 15, 15),
+    Danger     = Color3.fromRGB(255, 30, 30),
+    Yellow     = Color3.fromRGB(255, 180, 0),
+}
+
+-- ============================================
+-- KONFIGURASI
+-- ============================================
+local CORRECT_KEY = "noXis-script"
+local SAVE_FILE = "noXis_Key_Saved.txt"
+local GET_KEY_URL = "https://noxis-shn.github.io/noXis-Verivication-Script/Script.html"
+local EMOTE_URL = "https://rawscripts.net/raw/Universal-Script-7yd7-I-Emote-Script-48024"
+
+-- State
+local freecamOn = false
+local lockOn = false
+local freecamConn = nil
+local lockConn = nil
+local lockedCF = nil
+local minimized = false
+local moveAmt = 5
+
+-- ============================================
+-- FILE I/O
+-- ============================================
+local function hasFileAPI()
+    return typeof(writefile) == "function" and typeof(readfile) == "function" and typeof(isfile) == "function"
+end
+
+local function checkSavedKey()
+    if not hasFileAPI() then return false end
+    local ok, res = pcall(function()
+        if isfile(SAVE_FILE) then return readfile(SAVE_FILE) == CORRECT_KEY end
+        return false
+    end)
+    return ok and res
+end
+
+local function saveKey(k)
+    if not hasFileAPI() then return end
+    pcall(function() writefile(SAVE_FILE, k) end)
+end
+
+-- ============================================
+-- SAFE PARENT
+-- ============================================
+local function getSafeParent()
+    if typeof(gethui) == "function" then
+        local ok, res = pcall(gethui)
+        if ok and res then return res end
+    end
+    local cg = game:GetService("CoreGui")
+    local ok = pcall(function()
+        local t = Instance.new("Folder")
+        t.Parent = cg
+        t:Destroy()
+    end)
+    if ok then return cg end
+    return LocalPlayer:WaitForChild("PlayerGui")
+end
+
+-- ============================================
+-- DRAG
+-- ============================================
+local function makeDraggable(frame)
+    local drag, dStart, sPos
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            drag = true
+            dStart = input.Position
+            sPos = frame.Position
+        end
+    end)
+    frame.InputChanged:Connect(function(input)
+        if drag and (input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch) then
+            local d = input.Position - dStart
+            frame.Position = UDim2.new(
+                sPos.X.Scale, sPos.X.Offset + d.X,
+                sPos.Y.Scale, sPos.Y.Offset + d.Y
+            )
+        end
+    end)
+    frame.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            drag = false
+        end
+    end)
+end
+
+-- ============================================
+-- BUTTON MAKER
+-- ============================================
+local function makeBtn(parent, text, size, pos, primary, txtSize)
+    local b = Instance.new("TextButton")
+    b.Size = size
+    b.Position = pos
+    b.BackgroundColor3 = primary and C.BtnOn or C.BtnOff
+    b.Text = text
+    b.TextColor3 = C.White
+    b.TextSize = txtSize or 13
+    b.Font = Enum.Font.GothamBold
+    b.AutoButtonColor = false
+    b.BorderSizePixel = 0
+    b.TextWrapped = true
+    b.Parent = parent
+
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+
+    local s = Instance.new("UIStroke", b)
+    s.Color = primary and C.Red or C.DarkRed
+    s.Thickness = 1.5
+
+    b.MouseEnter:Connect(function()
+        TweenService:Create(b, TweenInfo.new(0.15), {
+            BackgroundColor3 = primary and C.Crimson or Color3.fromRGB(60, 15, 15)
+        }):Play()
+    end)
+    b.MouseLeave:Connect(function()
+        TweenService:Create(b, TweenInfo.new(0.15), {
+            BackgroundColor3 = b:GetAttribute("IsOn") and C.BtnOn or C.BtnOff
+        }):Play()
+    end)
+
+    return b, s
+end
+
+-- ============================================
+-- FITUR: FREECAM
+-- ============================================
+local function enableFreecam()
+    if freecamOn then return end
+    freecamOn = true
+
+    local cam = workspace.CurrentCamera
+    local cf = cam.CFrame
+    local rx, ry = 0, 0
+
+    pcall(function()
+        UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+        UserInputService.MouseIconEnabled = false
+    end)
+
+    freecamConn = RunService.RenderStepped:Connect(function()
+        if not freecamOn then return end
+        local d = UserInputService:GetMouseDelta()
+        rx = rx - d.X * 0.005
+        ry = math.clamp(ry - d.Y * 0.005, -math.rad(89), math.rad(89))
+
+        local mv = Vector3.new(0, 0, 0)
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then mv = mv + Vector3.new(0, 0, -1) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then mv = mv + Vector3.new(0, 0, 1) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then mv = mv + Vector3.new(-1, 0, 0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then mv = mv + Vector3.new(1, 0, 0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then mv = mv + Vector3.new(0, 1, 0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then mv = mv + Vector3.new(0, -1, 0) end
+
+        local rot = CFrame.fromEulerAnglesYXZ(ry, rx, 0)
+        cf = CFrame.new(cf.Position) * rot
+        cf = cf + (cf:VectorToWorldSpace(mv) * 1.5)
+
+        cam.CFrame = cf
+        cam.Focus = cf
+    end)
+end
+
+local function disableFreecam()
+    if not freecamOn then return end
+    freecamOn = false
+    if freecamConn then
+        freecamConn:Disconnect()
+        freecamConn = nil
+    end
+    pcall(function()
+        UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+        UserInputService.MouseIconEnabled = true
+    end)
+    local char = LocalPlayer.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then Camera.CameraSubject = hum end
+    end
+end
+
+-- ============================================
+-- FITUR: LOCK
+-- ============================================
+local function lockChar()
+    if lockOn then return end
+    local char = LocalPlayer.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    lockOn = true
+    lockedCF = hrp.CFrame
+
+    lockConn = RunService.RenderStepped:Connect(function()
+        if not lockOn then return end
+        local c = LocalPlayer.Character
+        if not c then return end
+        local h = c:FindFirstChild("HumanoidRootPart")
+        if not h then return end
+        if lockedCF then
+            h.CFrame = CFrame.new(lockedCF.Position) * (h.CFrame - h.CFrame.Position)
+        end
+    end)
+
+    pcall(function()
+        local pm = LocalPlayer.PlayerScripts:FindFirstChild("PlayerModule")
+        if pm then require(pm):GetControls():Disable() end
+    end)
+end
+
+local function unlockChar()
+    if not lockOn then return end
+    lockOn = false
+    lockedCF = nil
+    if lockConn then
+        lockConn:Disconnect()
+        lockConn = nil
+    end
+    pcall(function()
+        local pm = LocalPlayer.PlayerScripts:FindFirstChild("PlayerModule")
+        if pm then require(pm):GetControls():Enable() end
+    end)
+end
+
+-- ============================================
+-- FITUR: MOVE
+-- ============================================
+local function moveChar(dir, amt)
+    local char = LocalPlayer.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    local off = Vector3.new(0, 0, 0)
+    if dir == "up" then off = Vector3.new(0, amt, 0)
+    elseif dir == "down" then off = Vector3.new(0, -amt, 0)
+    elseif dir == "left" then off = Vector3.new(-amt, 0, 0)
+    elseif dir == "right" then off = Vector3.new(amt, 0, 0)
+    elseif dir == "forward" then off = Vector3.new(0, 0, -amt)
+    elseif dir == "backward" then off = Vector3.new(0, 0, amt)
+    end
+
+    hrp.CFrame = hrp.CFrame + off
+    if lockedCF then lockedCF = hrp.CFrame end
+end
+
+-- ============================================
+-- FITUR: EMOTE
+-- ============================================
+local function runEmote()
+    local ok, err = pcall(function()
+        loadstring(game:HttpGet(EMOTE_URL))()
+    end)
+    if not ok then warn("[noXis] " .. tostring(err)) end
+    return ok
+end
+
+-- ============================================
+-- GUI: KEY SCREEN
+-- ============================================
+local function makeKeyGUI()
+    local sg = Instance.new("ScreenGui")
+    sg.Name = "noXisKeyGUI"
+    sg.ResetOnSpawn = false
+    sg.IgnoreGuiInset = true
+    sg.Parent = getSafeParent()
+
+    local fr = Instance.new("Frame")
+    fr.Size = UDim2.new(0, 360, 0, 250)
+    fr.Position = UDim2.new(0.5, -180, 0.5, -125)
+    fr.BackgroundColor3 = C.BG
+    fr.BorderSizePixel = 0
+    fr.Active = true
+    fr.Parent = sg
+
+    Instance.new("UICorner", fr).CornerRadius = UDim.new(0, 12)
+    local st = Instance.new("UIStroke", fr)
+    st.Color = C.Red
+    st.Thickness = 2
+
+    makeDraggable(fr)
+
+    -- Header
+    local hd = Instance.new("Frame")
+    hd.Size = UDim2.new(1, 0, 0, 55)
+    hd.BackgroundColor3 = C.Header
+    hd.BorderSizePixel = 0
+    hd.Parent = fr
+    Instance.new("UICorner", hd).CornerRadius = UDim.new(0, 12)
+
+    local fix = Instance.new("Frame")
+    fix.Size = UDim2.new(1, 0, 0, 15)
+    fix.Position = UDim2.new(0, 0, 1, -15)
+    fix.BackgroundColor3 = C.Header
+    fix.BorderSizePixel = 0
+    fix.Parent = hd
+
+    local ln = Instance.new("Frame")
+    ln.Size = UDim2.new(1, 0, 0, 2)
+    ln.Position = UDim2.new(0, 0, 1, -2)
+    ln.BackgroundColor3 = C.Red
+    ln.BorderSizePixel = 0
+    ln.Parent = hd
+
+    local t1 = Instance.new("TextLabel")
+    t1.Size = UDim2.new(1, 0, 0, 30)
+    t1.Position = UDim2.new(0, 0, 0, 8)
+    t1.BackgroundTransparency = 1
+    t1.Text = "🔐 VERIFIKASI KEY"
+    t1.TextColor3 = C.Crimson
+    t1.TextSize = 22
+    t1.Font = Enum.Font.GothamBold
+    t1.Parent = hd
+
+    local t2 = Instance.new("TextLabel")
+    t2.Size = UDim2.new(1, 0, 0, 15)
+    t2.Position = UDim2.new(0, 0, 0, 36)
+    t2.BackgroundTransparency = 1
+    t2.Text = "🔴 noXis Script Verification ⚫"
+    t2.TextColor3 = C.Gray
+    t2.TextSize = 11
+    t2.Font = Enum.Font.Gotham
+    t2.Parent = hd
+
+    -- Input
+    local inp = Instance.new("Frame")
+    inp.Size = UDim2.new(0, 300, 0, 42)
+    inp.Position = UDim2.new(0.5, -150, 0, 90)
+    inp.BackgroundColor3 = C.Panel
+    inp.BorderSizePixel = 0
+    inp.Parent = fr
+    Instance.new("UICorner", inp).CornerRadius = UDim.new(0, 8)
+    local ips = Instance.new("UIStroke", inp)
+    ips.Color = C.DarkRed
+    ips.Thickness = 1.5
+
+    local box = Instance.new("TextBox")
+    box.Size = UDim2.new(1, -20, 1, 0)
+    box.Position = UDim2.new(0, 10, 0, 0)
+    box.BackgroundTransparency = 1
+    box.PlaceholderText = "Masukkan key di sini..."
+    box.PlaceholderColor3 = Color3.fromRGB(120, 50, 50)
+    box.Text = ""
+    box.TextColor3 = C.White
+    box.TextSize = 15
+    box.Font = Enum.Font.Gotham
+    box.ClearTextOnFocus = false
+    box.Parent = inp
+
+    -- Status
+    local stat = Instance.new("TextLabel")
+    stat.Size = UDim2.new(1, 0, 0, 20)
+    stat.Position = UDim2.new(0, 0, 0, 200)
+    stat.BackgroundTransparency = 1
+    stat.Text = ""
+    stat.TextColor3 = C.TextRed
+    stat.TextSize = 13
+    stat.Font = Enum.Font.GothamBold
+    stat.Parent = fr
+
+    local subBtn = makeBtn(fr, "✓ SUBMIT KEY",
+        UDim2.new(0, 135, 0, 42), UDim2.new(0, 30, 0, 145), true)
+    local getBtn = makeBtn(fr, "🔗 GET KEY",
+        UDim2.new(0, 135, 0, 42), UDim2.new(1, -165, 0, 145), false)
+
+    return sg, box, subBtn, getBtn, stat
+end
+
+-- ============================================
+-- GUI: MAIN (LANDSCAPE)
+-- ============================================
+local function makeMainGUI()
+    local sg = Instance.new("ScreenGui")
+    sg.Name = "noXisReyfieldGUI"
+    sg.ResetOnSpawn = false
+    sg.IgnoreGuiInset = true
+    sg.Parent = getSafeParent()
+
+    -- ===== FRAME UTAMA LANDSCAPE =====
+    local fr = Instance.new("Frame")
+    fr.Name = "MainFrame"
+    fr.Size = UDim2.new(0, 620, 0, 340)
+    fr.Position = UDim2.new(0.5, -310, 0.5, -170)
+    fr.BackgroundColor3 = C.BG
+    fr.BorderSizePixel = 0
+    fr.Active = true
+    fr.Parent = sg
+
+    Instance.new("UICorner", fr).CornerRadius = UDim.new(0, 12)
+    local st = Instance.new("UIStroke", fr)
+    st.Color = C.Red
+    st.Thickness = 2
+
+    makeDraggable(fr)
+
+    -- ===== HEADER =====
+    local hd = Instance.new("Frame")
+    hd.Size = UDim2.new(1, 0, 0, 45)
+    hd.BackgroundColor3 = C.Header
+    hd.BorderSizePixel = 0
+    hd.Parent = fr
+    Instance.new("UICorner", hd).CornerRadius = UDim.new(0, 12)
+
+    local fix = Instance.new("Frame")
+    fix.Size = UDim2.new(1, 0, 0, 15)
+    fix.Position = UDim2.new(0, 0, 1, -15)
+    fix.BackgroundColor3 = C.Header
+    fix.BorderSizePixel = 0
+    fix.Parent = hd
+
+    local ln = Instance.new("Frame")
+    ln.Size = UDim2.new(1, 0, 0, 2)
+    ln.Position = UDim2.new(0, 0, 1, -2)
+    ln.BackgroundColor3 = C.Red
+    ln.BorderSizePixel = 0
+    ln.Parent = hd
+
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, -110, 1, 0)
+    title.Position = UDim2.new(0, 15, 0, 0)
+    title.BackgroundTransparency = 1
+    title.Text = "🔴 REYFIELD - LANDSCAPE ⚫"
+    title.TextColor3 = C.Crimson
+    title.TextSize = 17
+    title.Font = Enum.Font.GothamBold
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Parent = hd
+
+    -- Tombol Minimize
+    local minB = Instance.new("TextButton")
+    minB.Size = UDim2.new(0, 30, 0, 30)
+    minB.Position = UDim2.new(1, -75, 0, 8)
+    minB.BackgroundColor3 = C.Yellow
+    minB.Text = "—"
+    minB.TextColor3 = C.White
+    minB.TextSize = 20
+    minB.Font = Enum.Font.GothamBold
+    minB.BorderSizePixel = 0
+    minB.Parent = hd
+    Instance.new("UICorner", minB).CornerRadius = UDim.new(0, 8)
+
+    -- Tombol Close
+    local closeB = Instance.new("TextButton")
+    closeB.Size = UDim2.new(0, 30, 0, 30)
+    closeB.Position = UDim2.new(1, -40, 0, 8)
+    closeB.BackgroundColor3 = C.Danger
+    closeB.Text = "X"
+    closeB.TextColor3 = C.White
+    closeB.TextSize = 16
+    closeB.Font = Enum.Font.GothamBold
+    closeB.BorderSizePixel = 0
+    closeB.Parent = hd
+    Instance.new("UICorner", closeB).CornerRadius = UDim.new(0, 8)
+
+    -- ===== KONTEN =====
+    local ct = Instance.new("Frame")
+    ct.Size = UDim2.new(1, -20, 1, -60)
+    ct.Position = UDim2.new(0, 10, 0, 55)
+    ct.BackgroundTransparency = 1
+    ct.Parent = fr
+
+    -- ===== MINI BUTTON =====
+    local mini = Instance.new("TextButton")
+    mini.Size = UDim2.new(0, 130, 0, 40)
+    mini.Position = UDim2.new(0, 20, 0, 20)
+    mini.BackgroundColor3 = C.Header
+    mini.Text = "🔴 REYFIELD"
+    mini.TextColor3 = C.Crimson
+    mini.TextSize = 13
+    mini.Font = Enum.Font.GothamBold
+    mini.BorderSizePixel = 0
+    mini.Visible = false
+    mini.Parent = sg
+    Instance.new("UICorner", mini).CornerRadius = UDim.new(0, 10)
+    local ms = Instance.new("UIStroke", mini)
+    ms.Color = C.Red
+    ms.Thickness = 2
+    makeDraggable(mini)
+
+    local function setMin(state)
+        minimized = state
+        if state then
+            fr.Visible = false
+            mini.Visible = true
+        else
+            mini.Visible = false
+            fr.Visible = true
+        end
+    end
+
+    minB.MouseButton1Click:Connect(function() setMin(true) end)
+    mini.MouseButton1Click:Connect(function() setMin(false) end)
+
+    closeB.MouseButton1Click:Connect(function()
+        if freecamConn then freecamConn:Disconnect() end
+        if lockConn then lockConn:Disconnect() end
+        pcall(function()
+            UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+            UserInputService.MouseIconEnabled = true
+        end)
+        sg:Destroy()
+    end)
+
+    -- ============================================
+    -- 3 KOLOM
+    -- ============================================
+    local COL_W = 0.32
+    local GAP = 0.02
+
+    -- ========== KOLOM 1: FREECAM ==========
+    local c1 = Instance.new("Frame")
+    c1.Size = UDim2.new(COL_W, 0, 1, 0)
+    c1.Position = UDim2.new(0, 0, 0, 0)
+    c1.BackgroundColor3 = C.Panel
+    c1.BorderSizePixel = 0
+    c1.Parent = ct
+    Instance.new("UICorner", c1).CornerRadius = UDim.new(0, 10)
+    local c1s = Instance.new("UIStroke", c1)
+    c1s.Color = C.DarkRed
+    c1s.Thickness = 1
+
+    local c1t = Instance.new("TextLabel")
+    c1t.Size = UDim2.new(1, 0, 0, 30)
+    c1t.Position = UDim2.new(0, 0, 0, 8)
+    c1t.BackgroundTransparency = 1
+    c1t.Text = "🎥 FREECAM"
+    c1t.TextColor3 = C.TextRed
+    c1t.TextSize = 15
+    c1t.Font = Enum.Font.GothamBold
+    c1t.Parent = c1
+
+    local info1 = Instance.new("TextLabel")
+    info1.Size = UDim2.new(1, -16, 0, 45)
+    info1.Position = UDim2.new(0, 8, 0, 42)
+    info1.BackgroundTransparency = 1
+    info1.Text = "WASD: gerak\nSpace/Ctrl: naik/turun\nMouse: lihat"
+    info1.TextColor3 = C.Gray
+    info1.TextSize = 10
+    info1.Font = Enum.Font.Gotham
+    info1.TextYAlignment = Enum.TextYAlignment.Top
+    info1.TextXAlignment = Enum.TextXAlignment.Left
+    info1.Parent = c1
+
+    local fcBtn, fcS = makeBtn(c1, "▶ ENABLE",
+        UDim2.new(1, -16, 0, 45), UDim2.new(0, 8, 0, 95), false)
+    fcBtn:SetAttribute("IsOn", false)
+
+    fcBtn.MouseButton1Click:Connect(function()
+        if freecamOn then
+            disableFreecam()
+            fcBtn.Text = "▶ ENABLE"
+            fcBtn:SetAttribute("IsOn", false)
+            fcBtn.BackgroundColor3 = C.BtnOff
+            fcS.Color = C.DarkRed
+        else
+            enableFreecam()
+            fcBtn.Text = "■ DISABLE"
+            fcBtn:SetAttribute("IsOn", true)
+            fcBtn.BackgroundColor3 = C.BtnOn
+            fcS.Color = C.Crimson
+        end
+    end)
+
+    local fcStat = Instance.new("Frame")
+    fcStat.Size = UDim2.new(1, -16, 0, 25)
+    fcStat.Position = UDim2.new(0, 8, 0, 150)
+    fcStat.BackgroundColor3 = C.BG
+    fcStat.BorderSizePixel = 0
+    fcStat.Parent = c1
+    Instance.new("UICorner", fcStat).CornerRadius = UDim.new(0, 6)
+
+    local fcStatTxt = Instance.new("TextLabel")
+    fcStatTxt.Size = UDim2.new(1, 0, 1, 0)
+    fcStatTxt.BackgroundTransparency = 1
+    fcStatTxt.Text = "● STATUS: OFF"
+    fcStatTxt.TextColor3 = C.Gray
+    fcStatTxt.TextSize = 11
+    fcStatTxt.Font = Enum.Font.GothamBold
+    fcStatTxt.Parent = fcStat
+
+    task.spawn(function()
+        while fcStat.Parent do
+            if freecamOn then
+                fcStatTxt.Text = "● STATUS: ON"
+                fcStatTxt.TextColor3 = Color3.fromRGB(100, 255, 100)
+            else
+                fcSt
