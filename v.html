@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>noXis-script — Verifikasi</title>
+    <style>
+        *{margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', sans-serif;}
+        :root{
+            --gelap:#0f0f1a; --card:#1a1a2e;
+            --ungu:#7928ca; --ungu2:#ff0080;
+            --hijau:#00e080; --merah:#ff3355;
+            --abu:#8888aa; --putih:#ffffff;
+        }
+        body{
+            background:linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
+            color:var(--putih); min-height:100vh;
+            display:flex; align-items:center; justify-content:center;
+            padding:20px;
+        }
+        .container{
+            background:var(--card); border-radius:20px;
+            padding:35px 25px; width:100%; max-width:450px;
+            box-shadow:0 0 40px rgba(121,40,202,0.25);
+            border:1px solid rgba(121,40,202,0.3);
+            text-align:center;
+        }
+        h1{font-size:1.7rem; margin-bottom:8px; background:linear-gradient(90deg,var(--ungu),var(--ungu2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent;}
+        .sub{color:var(--abu); margin-bottom:25px; font-size:0.95rem;}
+
+        .syarat-box{text-align:left; margin:15px 0 25px;}
+        .syarat-item{
+            display:flex; align-items:center; gap:12px;
+            padding:15px; border-radius:12px;
+            background:rgba(255,255,255,0.03);
+            margin-bottom:12px; border:2px solid transparent;
+            transition:all 0.3s; cursor:pointer;
+        }
+        .syarat-item:hover{border-color:var(--ungu); background:rgba(121,40,202,0.1); transform:translateX(5px);}
+        .syarat-item.selesai{border-color:var(--hijau); background:rgba(0,224,128,0.08); cursor:default;}
+        .icon{width:28px; height:28px; border-radius:50%; border:2px solid var(--abu); display:flex; align-items:center; justify-content:center; font-weight:bold; color:var(--abu); flex-shrink:0;}
+        .selesai .icon{background:var(--hijau); border-color:var(--hijau); color:#000;}
+        .syarat-text{font-size:0.95rem;}
+        .selesai .syarat-text{color:var(--hijau); font-weight:500;}
+        .info{color:var(--abu); font-size:0.9rem; margin-top:2px;}
+
+        .btn{
+            width:100%; padding:14px; border-radius:12px; border:none;
+            font-size:1rem; font-weight:600; cursor:pointer;
+            transition:all 0.3s; margin-top:8px;
+        }
+        .btn-benar{background:var(--hijau); color:#000; font-size:1.1rem;}
+        .btn-benar:hover{box-shadow:0 5px 20px rgba(0,224,128,0.4);}
+        .btn-salah{background:var(--merah); color:white; font-size:1.1rem;}
+        .btn-salah:hover{box-shadow:0 5px 20px rgba(255,51,85,0.4);}
+        .btn-buka{background:linear-gradient(90deg,var(--hijau),#00cc55); color:#000; font-size:1.1rem; padding:16px; margin-top:15px;}
+        .btn-buka:disabled{opacity:0.4; cursor:not-allowed; transform:none;}
+        .btn-buka:enabled:hover{box-shadow:0 5px 20px rgba(0,224,128,0.4);}
+        .kembali{background:transparent; border:none; color:var(--abu); margin-top:20px; text-decoration:underline; cursor:pointer;}
+        
+        .soal-kotak{
+            font-size:1.15rem; line-height:1.7;
+            padding:25px; background:rgba(121,40,202,0.1); 
+            border-radius:12px; margin:20px 0; 
+            border:1px solid rgba(121,40,202,0.3);
+            min-height:140px; display:flex; align-items:center; justify-content:center;
+        }
+        .pilihan-grup{display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-top:10px;}
+        .hasil-jawaban{font-size:1.1rem; font-weight:bold; margin-top:15px; min-height:30px;}
+        .salah{color:var(--merah);}
+        .benar{color:var(--hijau);}
+
+        .halaman{display:none;}
+        .halaman.aktif{display:block; animation:fadeIn 0.4s ease;}
+        @keyframes fadeIn{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);}}
+
+        .puzzle-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:6px; width:210px; height:210px; margin:20px auto;}
+        .puzzle-kotak{background:linear-gradient(135deg,var(--ungu),var(--ungu2)); border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:1.2rem; cursor:pointer; transition:0.2s; user-select:none;}
+        .puzzle-kotak:hover{scale:1.05;}
+        .kosong{background:transparent; border:1px dashed rgba(255,255,255,0.2); cursor:default;}
+
+        .captcha-box{
+            border:2px solid rgba(255,255,255,0.15); border-radius:12px; padding:20px; margin:20px 0;
+            display:flex; align-items:center; gap:15px; text-align:left;
+            transition:0.3s; cursor:pointer;
+        }
+        .captcha-box:hover{border-color:var(--ungu);}
+        .captcha-box.terkunci{opacity:0.6; cursor:not-allowed;}
+        .cek-kotak{
+            width:26px; height:26px; border:2px solid var(--abu); border-radius:4px;
+            display:flex; align-items:center; justify-content:center; flex-shrink:0;
+            transition:0.2s;
+        }
+        .donat-kontainer{
+            width:26px; height:26px; position:relative; flex-shrink:0;
+            display:flex; align-items:center; justify-content:center; display:none;
+        }
+        .donat{
+            width:100%; height:100%; border-radius:50%;
+            border:3px solid rgba(255,255,255,0.1);
+            border-top-color:var(--ungu);
+            border-right-color:var(--ungu2);
+            animation: putar 1s linear infinite;
+        }
+        @keyframes putar{
+            0%{transform: rotate(0deg);}
+            100%{transform: rotate(360deg);}
+        }
+        .donat.selesai{animation:none; border:none; background:var(--hijau); font-weight:bold; color:#000; font-size:16px; width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center;}
+
+        .hasil-kotak{
+            background:rgba(255,255,255,0.1); border:2px solid var(--putih); 
+            border-radius:12px; padding:20px; margin:25px 0; 
+            font-size:1.8rem; font-weight:bold; letter-spacing:2px; 
+            color:var(--putih);
+            text-shadow:0 0 10px rgba(255,255,255,0.3);
+        }
+        .btn-salin{background:var(--hijau); color:#000;}
+        #pesanSalin{margin-top:10px; color:var(--hijau); display:none;}
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- HALAMAN 1 — PILIH SYARAT -->
+    <div class="halaman aktif" id="hal1">
+        <h1>🔐 noXis-Verivication</h1>
+        <p class="sub">Klik syarat untuk mulai menyelesaikan!</p>
+
+        <div class="syarat-box">
+            <div class="syarat-item" id="s1-box" onclick="bukaHal('hal2')">
+                <div class="icon" id="s1-icon">1</div>
+                <div>
+                    <div class="syarat-text"><strong>Syarat 1</strong></div>
+                    <div class="info">Perangkat Keras (Sulit)</div>
+                </div>
+            </div>
+
+            <div class="syarat-item" id="s2-box" onclick="bukaHal('hal3')">
+                <div class="icon" id="s2-icon">2</div>
+                <div>
+                    <div class="syarat-text"><strong>Syarat 2</strong></div>
+                    <div class="info">Susun Puzzle</div>
+                </div>
+            </div>
+
+            <div class="syarat-item" id="s3-box" onclick="bukaHal('hal4')">
+                <div class="icon" id="s3-icon">3</div>
+                <div>
+                    <div class="syarat-text"><strong>Syarat 3</strong></div>
+                    <div class="info">Verifikasi Bukan Robot</div>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn btn-buka" id="btnBukaKunci" disabled>🔒 Selesaikan Semua Syarat</button>
+    </div>
+
+    <!-- HALAMAN 2 — SYARAT 1: BENAR/SALAH -->
+    <div class="halaman" id="hal2">
+        <h1>💻 Syarat 1</h1>
+        <p class="sub">Pilih BENAR atau SALAH!</p>
+        <div class="soal-kotak" id="teksSoal"></div>
+        <div class="pilihan-grup">
+            <button class="btn btn-benar" onclick="cekJawaban(true)">✅ BENAR</button>
+            <button class="btn btn-salah" onclick="cekJawaban(false)">❌ SALAH</button>
+        </div>
+        <div class="hasil-jawaban" id="hasilJawaban"></div>
+        <button class="btn kembali" onclick="bukaHal('hal1')">← Kembali</button>
+    </div>
+
+    <!-- HALAMAN 3 — PUZZLE -->
+    <div class="halaman" id="hal3">
+        <h1>🧩 Syarat 2</h1>
+        <p class="sub">Susun angka 1–8 berurutan</p>
+        <div class="puzzle-grid" id="puzzleArea"></div>
+        <p id="statusPuzzle" style="color:var(--abu);">Klik kotak untuk memindahkan</p>
+        <button class="btn kembali" onclick="bukaHal('hal1')">← Kembali</button>
+    </div>
+
+    <!-- HALAMAN 4 — VERIFIKASI -->
+    <div class="halaman" id="hal4">
+        <h1>🤖 Syarat 3</h1>
+        <p class="sub">Klik untuk mulai verifikasi</p>
+        <div class="captcha-box" id="captchaBox" onclick="mulaiVerifikasi()">
+            <div class="cek-kotak" id="cekKotak"></div>
+            <div class="donat-kontainer" id="donatKontainer">
+                <div class="donat" id="donatAnimasi"></div>
+            </div>
+            <span>Saya bukan robot</span>
+        </div>
+        <p id="statusCaptcha" style="color:var(--abu); margin-top:10px;">Belum diklik</p>
+        <button class="btn kembali" onclick="bukaHal('hal1')">← Kembali</button>
+    </div>
+
+    <!-- HALAMAN HASIL -->
+    <div class="halaman" id="halHasil">
+        <h1>✅ Akses Terbuka!</h1>
+        <p class="sub">kamu berhasil menyelesaikan syarat. ini key mu</p>
+        <div class="hasil-kotak" id="teksScript">noXis-script</div>
+        <button class="btn btn-salin" onclick="salinTeks()">📋 Salin Teks</button>
+        <p id="pesanSalin">✓ Teks berhasil disalin!</p>
+        <br>
+        <button class="btn kembali" onclick="bukaHal('hal1'); resetSemua();">🔄 Ulangi dari awal</button>
+    </div>
+
+</div>
+
+<script>
+// ==============================================
+// VARIABEL GLOBAL
+// ==============================================
+let syarat = {s1:false, s2:false, s3:false};
+let totalWaktu = 15000;
+let timerMulai = null;
+let intervalProgres = null;
+let sedangVerifikasi = false;
+let soalBenar = null;
+let urutan = [1,2,3,4,5,6,7,8,0];
+
+// ==============================================
+// DAFTAR SOAL
+// ==============================================
+const daftarSoal = [
+    {teks: "CPU adalah otak komputer yang mengolah instruksi dan data", jawaban: true},
+    {teks: "RAM menyimpan data permanen meskipun perangkat dimatikan", jawaban: false},
+    {teks: "SSD memiliki kecepatan jauh lebih cepat dibanding HDD", jawaban: true},
+    {teks: "GPU berfungsi khusus memproses grafis", jawaban: true},
+    {teks: "Motherboard menghubungkan semua komponen perangkat keras", jawaban: true},
+    {teks: "Prosesor Quad Core memiliki 4 inti pemrosesan", jawaban: true},
+    {teks: "Resolusi 1920×1080 disebut resolusi 2K", jawaban: false},
+    {teks: "Bluetooth dan Wi-Fi menggunakan gelombang radio", jawaban: true},
+    {teks: "Byte adalah satuan data terkecil dalam komputer", jawaban: false},
+    {teks: "USB-C mendukung transfer data, pengisian daya, dan output video", jawaban: true}
+];
+
+// ==============================================
+// FUNGSI PINDAH HALAMAN
+// ==============================================
+function bukaHal(id){
+    document.querySelectorAll('.halaman').forEach(h=>h.classList.remove('aktif'));
+    document.getElementById(id).classList.add('aktif');
+    if(id === 'hal1') updateStatusHalamanUtama();
+    if(id === 'hal2' && !syarat.s1) buatSoalBaru();
+    if(id === 'hal3') renderPuzzle();
+}
+
+// ==============================================
+// UPDATE STATUS HALAMAN UTAMA
+// ==============================================
+function updateStatusHalamanUtama(){
+    if(syarat.s1){ document.getElementById('s1-box').classList.add('selesai'); document.getElementById('s1-icon').innerText='✓'; }
+    if(syarat.s2){ document.getElementById('s2-box').classList.add('selesai'); document.getElementById('s2-icon').innerText='✓'; }
+    if(syarat.s3){ document.getElementById('s3-box').classList.add('selesai'); document.getElementById('s3-icon').innerText='✓'; }
+    
+    if(syarat.s1 && syarat.s2 && syarat.s3){
+        let btn = document.getElementById('btnBukaKunci');
+        btn.disabled = false;
+        btn.innerText = '🔓 Buka Kunci & Lanjut';
+        btn.onclick = function() { bukaHal('halHasil'); };
+    }
+}
+
+// ==============================================
+// SYARAT 1 — KUIS BENAR/SALAH
+// ==============================================
+function buatSoalBaru(){
+    const soalAcak = daftarSoal[Math.floor(Math.random() * daftarSoal.length)];
+    document.getElementById('teksSoal').innerText = soalAcak.teks;
+    soalBenar = soalAcak.jawaban;
+    document.getElementById('hasilJawaban').innerText = '';
+}
+
+function cekJawaban(jawabanPemain){
+    if(syarat.s1) return;
+    const hasil = document.getElementById('hasilJawaban');
+    
+    if(jawabanPemain === soalBenar){
+        syarat.s1 = true;
+        hasil.innerText = '✅ BENAR! Kembali ke halaman utama.';
+        hasil.className = 'hasil-jawaban benar';
+        setTimeout(function(){ bukaHal('hal1'); }, 1200);
+    } else {
+        hasil.innerText = '❌ SALAH! Soal baru dimuat...';
+        hasil.className = 'hasil-jawaban salah';
+        setTimeout(buatSoalBaru, 1200);
+    }
+}
+
+// ==============================================
+// SYARAT 2 — PUZZLE
+// ==============================================
+function acakPuzzle(){
+    for(let i=0; i<50; i++){
+        let kosong = urutan.indexOf(0);
+        let arah = [];
+        if(kosong%3 !== 0) arah.push(kosong - 1);
+        if(kosong%3 !== 2) arah.push(kosong + 1);
+        if(kosong >= 3) arah.push(kosong - 3);
+        if(kosong <= 5) arah.push(kosong + 3);
+        let pilih = arah[Math.floor(Math.random() * arah.length)];
+        [urutan[kosong], urutan[pilih]] = [urutan[pilih], urutan[kosong]];
+    }
+}
+
+function renderPuzzle(){
+    let area = document.getElementById('puzzleArea');
+    area.innerHTML = '';
+    urutan.forEach(function(num, idx){
+        let kotak = document.createElement('div');
+        kotak.className = 'puzzle-kotak' + (num === 0 ? ' kosong' : '');
+        kotak.innerText = num === 0 ? '' : num;
+        if(num !== 0) kotak.onclick = function() { klikKotak(idx); };
+        area.appendChild(kotak);
+    });
+    cekPuzzleSelesai();
+}
+
+function klikKotak(idx){
+    let kosong = urutan.indexOf(0);
+    let bisa = (
+        (idx === kosong - 1 && kosong%3 !== 0) ||
+        (idx === kosong + 1 && kosong%3 !== 2) ||
+        idx === kosong - 3 || idx === kosong + 3
+    );
+    if(bisa){
+        [urutan[idx], urutan[kosong]] = [urutan[kosong], urutan[idx]];
+        renderPuzzle();
+    }
+}
+
+function cekPuzzleSelesai(){
+    let benar = [1,2,3,4,5,6,7,8,0];
+    let selesai = urutan.every(function(v,i){ return v === benar[i]; });
+    if(selesai && !syarat.s2){
+        syarat.s2 = true;
+        document.getElementById('statusPuzzle').innerText = '✓ Puzzle Berhasil Disusun!';
+        document.getElementById('statusPuzzle').style.color = 'var(--hijau)';
+        setTimeout(function(){ bukaHal('hal1'); }, 1000);
+    }
+}
+
+// ==============================================
+// SYARAT 3 — VERIFIKASI 15 DETIK
+// ==============================================
+function mulaiVerifikasi(){
+    if(syarat.s3 || sedangVerifikasi) return;
+    sedangVerifikasi = true;
+
+    const kotak = document.getElementById('captchaBox');
+    const cekKotak = document.getElementById('cekKotak');
+    const donatKontainer = document.getElementById('donatKontainer');
+    const status = document.getElementById('statusCaptcha');
+
+    cekKotak.style.display = 'none';
+    donatKontainer.style.display = 'flex';
+    kotak.classList.add('terkunci');
+    kotak.onclick = null;
+    status.innerText = 'Sedang memverifikasi...';
+    status.style.color = 'var(--abu)';
+
+    timerMulai = Date.now();
+    intervalProgres = setInterval(function(){
+        let berlalu = Date.now() - timerMulai;
+        if(berlalu >= totalWaktu){
+            clearInterval(intervalProgres);
+            verifikasiSelesai();
+        }
+    }, 100);
+}
+
+function verifikasiSelesai(){
+    syarat.s3 = true;
+    sedangVerifikasi = false;
+
+    const donat = document.getElementById('donatAnimasi');
+    const status = document.getElementById('statusCaptcha');
+
+    donat.style.animation = 'none';
+    donat.style.border = 'none';
+    donat.style.background = 'var(--hijau)';
+    donat.innerHTML = '✓';
+    donat.classList.add('selesai');
+
+    document.getElementById('captchaBox').classList.remove('terkunci');
+    status.innerText = '✓ Verifikasi Berhasil!';
+    status.style.color = 'var(--hijau)';
+
+    setTimeout(function(){ bukaHal('hal1'); }, 1000);
+}
+
+// ==============================================
+// SALIN TEKS
+// ==============================================
+function salinTeks(){
+    let teks = document.getElementById('teksScript').innerText;
+    let textarea = document.createElement('textarea');
+    textarea.value = teks;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    
+    let p = document.getElementById('pesanSalin');
+    p.style.display = 'block';
+    setTimeout(function(){ p.style.display = 'none'; }, 2000);
+}
+
+// ==============================================
+// RESET SEMUA
+// ==============================================
+function resetSemua(){
+    syarat = {s1:false, s2:false, s3:false};
+    sedangVerifikasi = false;
+    if(intervalProgres) clearInterval(intervalProgres);
+    document.querySelectorAll('.syarat-item').forEach(function(el){ el.classList.remove('selesai'); });
+    document.getElementById('s1-icon').innerText = '1';
+    document.getElementById('s2-icon').innerText = '2';
+    document.getElementById('s3-icon').innerText = '3';
+    let btn = document.getElementById('btnBukaKunci');
+    btn.disabled = true;
+    btn.innerText = '🔒 Selesaikan Semua Syarat';
+    urutan = [1,2,3,4,5,6,7,8,0];
+    acakPuzzle();
+    buatSoalBaru();
+    
+    // Reset syarat 3
+    const kotak = document.getElementById('captchaBox');
+    const cekKotak = document.getElementById('cekKotak');
+    const donatKontainer = document.getElementById('donatKontainer');
+    donatKontainer.style.display = 'none';
+    cekKotak.style.display = 'flex';
+    kotak.classList.remove('terkunci');
+    kotak.onclick = function() { mulaiVerifikasi(); };
+    document.getElementById('statusCaptcha').innerText = 'Belum diklik';
+    document.getElementById('statusCaptcha').style.color = 'var(--abu)';
+}
+
+// ==============================================
+// INISIALISASI SAAT HALAMAN DIMUAT
+// ==============================================
+window.onload = function(){
+    acakPuzzle();
+    buatSoalBaru();
+    console.log('✅ noXis-script Verifikasi siap digunakan!');
+};
+</script>
+
+</body>
+</html>
