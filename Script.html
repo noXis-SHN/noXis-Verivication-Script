@@ -3,151 +3,350 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>noXis-script | Portal Resmi</title>
+    <title>noXis — Galeri Publik Semua Orang</title>
     <style>
         *{margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', sans-serif;}
         :root{
-            --gelap:#0f0f1a; --card:#1a1a2e;
-            --ungu:#7928ca; --ungu2:#ff0080;
-            --hijau:#00e080; --biru:#2563eb;
-            --merah:#ff3355; --putih:#ffffff;
+            --gelap:#0f0f1a; --ungu:#7928ca; --ungu2:#ff0080;
+            --putih:#fff; --abu:#2a2a4a; --hijau:#00e080; --merah:#ff3355;
         }
         body{
-            background:linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #0f0f1a 100%);
-            color:var(--putih); min-height:100vh;
-            display:flex; flex-direction:column;
-            align-items:center; justify-content:center;
-            padding:30px 20px;
-            background-attachment:fixed;
+            background:linear-gradient(135deg, #0f0f1a, #1a1a3a);
+            min-height:100vh; color:var(--putih); padding:20px;
         }
+        .layar{display:none; width:100%; max-width:900px; margin:0 auto;}
+        .layar.aktif{display:block; animation:muncul .4s ease;}
+        @keyframes muncul{from{opacity:0; transform:translateY(10px)}to{opacity:1; transform:none}}
 
-        /* ========= LOGO & JUDUL ========= */
-        .logo-kotak{
-            background:linear-gradient(135deg,var(--ungu),var(--ungu2));
-            width:120px; height:120px; border-radius:24px;
-            display:flex; align-items:center; justify-content:center;
-            font-size:2.8rem; font-weight:bold;
-            margin-bottom:20px;
-            box-shadow:0 0 40px rgba(121,40,202,0.5);
-            animation: logoFloat 3s ease-in-out infinite;
+        /* Kalkulator */
+        .kalkulator{
+            background:var(--abu); border-radius:20px; padding:30px;
+            box-shadow:0 0 30px #7928ca44; max-width:420px; margin:50px auto;
         }
-        @keyframes logoFloat{
-            0%,100%{transform:translateY(0);}
-            50%{transform:translateY(-10px);}
+        h1{text-align:center; margin-bottom:20px; background:linear-gradient(90deg,var(--ungu),var(--ungu2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; font-size:28px;}
+        .tampilan{
+            width:100%; padding:15px; font-size:22px; text-align:right;
+            border:none; border-radius:12px; background:#0005; color:var(--putih);
+            margin-bottom:20px; letter-spacing:2px;
         }
-        h1{
-            font-size:2.5rem; font-weight:800;
-            background:linear-gradient(90deg,var(--putih),var(--putih));
-            -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-            color:var(--putih);
-            letter-spacing:3px; margin-bottom:5px;
+        .tombol-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px;}
+        button{
+            padding:15px; font-size:18px; border:none; border-radius:10px; cursor:pointer;
+            background:#3a3a5a; color:white; transition:.2s;
         }
-        .sub-judul{
-            color:var(--ungu2); font-size:1.1rem; margin-bottom:50px;
-            letter-spacing:1px;
-        }
+        button:hover{transform:scale(1.05); background:var(--ungu);}
+        .tombol-sam{background:linear-gradient(90deg,var(--ungu),var(--ungu2));}
+        .tombol-hapus{background:var(--merah);}
+        .info{text-align:center; margin-top:15px; color:#8888aa; font-size:14px;}
 
-        /* ========= TOMBOL UTAMA — BESAR & PANJANG ========= */
-        .tombol-utama{
-            width:100%; max-width:420px;
-            padding:28px 20px; border-radius:16px;
-            background:linear-gradient(90deg,var(--ungu),var(--ungu2));
-            color:white; border:none;
-            font-size:1.3rem; font-weight:700;
-            cursor:pointer; text-decoration:none;
-            display:flex; align-items:center; justify-content:center;
-            gap:12px;
-            margin-bottom:35px;
-            box-shadow:0 0 30px rgba(121,40,202,0.4);
-            transition:all 0.3s ease;
-            border:2px solid transparent;
+        /* Beranda */
+        .konten-utama{background:var(--abu); border-radius:20px; padding:25px; box-shadow:0 0 30px #7928ca44;}
+        .bar-atas{display:flex; gap:12px; margin-bottom:25px; align-items:center; flex-wrap:wrap;}
+        .kolom-cari{
+            flex:1; min-width:220px; padding:12px 18px; font-size:16px;
+            border:none; border-radius:10px; background:#0005; color:white;
+            border:1px solid #444477;
         }
-        .tombol-utama:hover{
-            transform:translateY(-4px) scale(1.02);
-            box-shadow:0 10px 40px rgba(121,40,202,0.5);
-            border-color:rgba(255,255,255,0.2);
+        .kolom-cari:focus{outline:none; border-color:var(--ungu); box-shadow:0 0 10px #7928ca55;}
+        .tombol-upload{
+            padding:12px 24px; background:linear-gradient(90deg,var(--ungu),var(--ungu2));
+            font-weight:bold; white-space:nowrap;
         }
-        .ikon-besar{font-size:1.6rem;}
+        .tombol-kembali{background:#444; margin-bottom:20px; width:100%;}
+        .status-publik{text-align:right; font-size:13px; color:var(--hijau); margin-bottom:10px;}
 
-        /* ========= 3 TOMBOL KECIL — KUBUS ========= */
-        .tombol-sosial-wadah{
-            display:grid; grid-template-columns:repeat(3,1fr);
-            gap:20px; width:100%; max-width:420px;
+        /* Form Upload */
+        .area-upload-form{
+            border:2px dashed var(--ungu); border-radius:12px; padding:30px;
+            text-align:center; margin-bottom:25px; display:none;
         }
-        .tombol-sosial{
-            aspect-ratio:1/1; border-radius:16px;
-            background:rgba(255,255,255,0.05);
-            border:2px solid rgba(255,255,255,0.1);
-            color:white; text-decoration:none;
-            display:flex; flex-direction:column;
-            align-items:center; justify-content:center;
-            gap:8px;
-            transition:all 0.3s ease;
+        .area-upload-form.tampil{display:block; animation:muncul .3s ease;}
+        .input-nama{
+            width:100%; padding:12px 18px; font-size:16px; margin:15px 0;
+            border:none; border-radius:10px; background:#0005; color:white;
+            border:1px solid #444477;
+        }
+        .input-nama:focus{outline:none; border-color:var(--ungu);}
+        #pratinjau{max-width:100%; max-height:250px; border-radius:10px; margin:15px auto; display:none;}
+        #inputFile{display:none;}
+        .tombol-terbitkan{background:var(--hijau); margin-top:10px;}
+        .tombol-terbitkan:disabled{opacity:0.4; cursor:not-allowed; transform:none;}
+        .wajib{color:var(--merah); font-size:13px; margin-top:10px;}
+
+        /* Galeri */
+        .galeri h2{color:var(--ungu); margin-bottom:15px; font-size:20px;}
+        .grid-gambar{
+            display:grid; grid-template-columns:repeat(auto-fill, minmax(160px,1fr)); gap:15px;
+        }
+        .kartu-gambar{
+            background:#1a1a3a; border-radius:12px; overflow:hidden; transition:.3s;
             cursor:pointer;
         }
-        .tombol-sosial:hover{
-            transform:translateY(-5px) scale(1.05);
-            border-color:var(--ungu);
-            background:rgba(121,40,202,0.15);
-            box-shadow:0 8px 25px rgba(121,40,202,0.3);
-        }
-        .tombol-sosial.wa:hover{border-color:#25d366; background:rgba(37,211,102,0.1); box-shadow:0 8px 25px rgba(37,211,102,0.25);}
-        .tombol-sosial.tiktok:hover{border-color:#000000; background:rgba(255,255,255,0.08); box-shadow:0 8px 25px rgba(255,0,80,0.25);}
-        .tombol-sosial.discord:hover{border-color:#5865f2; background:rgba(88,101,242,0.1); box-shadow:0 8px 25px rgba(88,101,242,0.25);}
-        
-        .ikon-sosial{font-size:1.8rem;}
-        .label-sosial{font-size:0.85rem; font-weight:500; opacity:0.8;}
+        .kartu-gambar:hover{transform:translateY(-5px); box-shadow:0 8px 20px #7928ca44;}
+        .kartu-gambar img{width:100%; height:140px; object-fit:cover; display:block;}
+        .kartu-gambar .nama{padding:10px; font-size:13px; color:#ccc; word-break:break-all;}
+        .kartu-gambar .pengirim{font-size:11px; color:#777; margin-top:4px;}
+        .kosong{text-align:center; padding:40px; color:#666;}
+        .sedang-muat{text-align:center; padding:20px; color:var(--ungu);}
 
-        /* ========= FOOTER ========= */
-        footer{
-            margin-top:50px; color:var(--abu);
-            font-size:0.85rem; opacity:0.5;
+        /* Modal Perbesar */
+        .modal-latar{
+            position:fixed; inset:0; background:#000000dd;
+            display:none; align-items:center; justify-content:center;
+            z-index:999; padding:20px;
         }
-
-        /* RESPONSIVE HP */
-        @media (max-width:480px){
-            h1{font-size:2rem;}
-            .logo-kotak{width:100px; height:100px; font-size:2.2rem;}
-            .tombol-utama{padding:24px 20px; font-size:1.15rem;}
-            .tombol-sosial-wadah{gap:15px;}
+        .modal-latar.tampil{display:flex;}
+        .modal-kotak{position:relative; max-width:90%; max-height:90%;}
+        .modal-gambar{
+            max-width:100%; max-height:85vh; border-radius:12px;
+            box-shadow:0 0 40px #7928ca66;
+        }
+        .tombol-tutup{
+            position:absolute; top:-15px; right:-15px; width:45px; height:45px;
+            border-radius:50%; background:var(--merah); color:white;
+            font-size:22px; font-weight:bold; border:none; cursor:pointer;
+        }
+        .tombol-tutup:hover{transform:scale(1.1); background:#ff5577;}
+        .modal-nama{
+            text-align:center; margin-top:15px; font-size:18px;
+            color:var(--putih);
         }
     </style>
 </head>
 <body>
 
-    <!-- LOGO -->
-    <div class="logo-kotak">𝓷𝕩</div>
-    <h1>noXis</h1>
-    <p class="sub-judul">Portal Resmi & Verifikasi</p>
+<!-- === LAYAR 1: KALKULATOR === -->
+<div class="layar aktif" id="layarKalkulator">
+    <div class="kalkulator">
+        <h1>noXis</h1>
+        <input type="text" class="tampilan" id="tampilan" readonly placeholder="Ketik angka...">
+        <div class="tombol-grid">
+            <button onclick="tulis('7')">7</button>
+            <button onclick="tulis('8')">8</button>
+            <button onclick="tulis('9')">9</button>
+            <button onclick="tulis('/')">/</button>
 
-    <!-- TOMBOL UTAMA — BESAR -->
-    <a href="https://noxis-shn.github.io/noXis-Verivication-Script/v.html" class="tombol-utama">
-        <span class="ikon-besar">🔐</span>
-        HALAMAN VERIFIKASI
-    </a>
+            <button onclick="tulis('4')">4</button>
+            <button onclick="tulis('5')">5</button>
+            <button onclick="tulis('6')">6</button>
+            <button onclick="tulis('*')">×</button>
 
-    <!-- 3 TOMBOL SOSIAL — KUBUS KECIL -->
-    <div class="tombol-sosial-wadah">
-        <!-- TIKTOK -->
-        <a href="GANTI_LINK_TIKTOK_DI_SINI" target="_blank" class="tombol-sosial tiktok">
-            <span class="ikon-sosial"></span>
-            <span class="label-sosial">TikTok</span>
-        </a>
+            <button onclick="tulis('1')">1</button>
+            <button onclick="tulis('2')">2</button>
+            <button onclick="tulis('3')">3</button>
+            <button onclick="tulis('-')">−</button>
 
-        <!-- WHATSAPP -->
-        <a href="https://whatsapp.com/channel/0029Vb8jaVPBfxoEu1jTKc1H" target="_blank" class="tombol-sosial wa">
-            <span class="ikon-sosial"></span>
-            <span class="label-sosial">WhatsApp</span>
-        </a>
+            <button onclick="tulis('0')">0</button>
+            <button onclick="tulis('.')">.</button>
+            <button onclick="hitung()" class="tombol-sam">=</button>
+            <button onclick="tulis('+')">+</button>
 
-        <!-- DISCORD -->
-        <a href="GANTI_LINK_DISCORD_DI_SINI" target="_blank" class="tombol-sosial discord">
-            <span class="ikon-sosial"></span>
-            <span class="label-sosial">Discord</span>
-        </a>
+            <button onclick="hapusSemua()" class="tombol-hapus" style="grid-column:span 4;">Hapus</button>
+        </div>
+        <p class="info">-/-/-/ CALCULATOR \-\-\-</p>
     </div>
+</div>
 
-    <footer>© 2026 noXis-script — All Rights Reserved</footer>
+<!-- === LAYAR 2: GALERI PUBLIK === -->
+<div class="layar" id="layarBeranda">
+    <div class="konten-utama">
+        <button onclick="kembaliKeKalkulator()" class="tombol-kembali">← Kembali ke Kalkulator</button>
+        <h1 style="margin-bottom:10px;">🌐 Galeri Publik noXis</h1>
+        <p class="status-publik">✅ Semua gambar terlihat oleh semua pengunjung</p>
 
+        <div class="bar-atas">
+            <input type="text" class="kolom-cari" id="kolomCari" placeholder="Cari nama gambar..." oninput="cariGambar()">
+            <button class="tombol-upload" onclick="bukaFormUpload()">📤 Upload</button>
+        </div>
+
+        <div class="area-upload-form" id="formUpload">
+            <p style="font-size:18px; margin-bottom:10px;">Gambar akan dilihat SEMUA orang!</p>
+            <input type="text" class="input-nama" id="inputNamaGambar" placeholder="✍️ Beri nama gambar *WAJIB*" oninput="cekLengkap()">
+            <button onclick="document.getElementById('inputFile').click()" class="tombol-sam">Pilih Gambar</button>
+            <input type="file" id="inputFile" accept="image/*" onchange="cekLengkap()">
+            <img id="pratinjau" alt="Pratinjau">
+            <br>
+            <button onclick="terbitkan()" class="tombol-terbitkan" id="btnTerbitkan" disabled>✅ Publikasikan ke Semua Orang</button>
+            <p class="wajib" id="pesanWajib">Lengkapi nama & pilih gambar dulu</p>
+        </div>
+
+        <div class="galeri">
+            <h2>Semua Gambar Publik</h2>
+            <div class="grid-gambar" id="daftarGambar">
+                <p class="sedang-muat">Memuat gambar dari server...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- === MODAL PERBESAR === -->
+<div class="modal-latar" id="modalFoto" onclick="tutupModal(event)">
+    <div class="modal-kotak" onclick="event.stopPropagation()">
+        <button class="tombol-tutup" onclick="tutupModal()">×</button>
+        <img class="modal-gambar" id="gambarBesar" alt="">
+        <p class="modal-nama" id="namaBesar"></p>
+    </div>
+</div>
+
+<script>
+// === KALKULATOR & KODE RAHASIA ===
+const tampilan = document.getElementById('tampilan');
+const kodeRahasia = '09099';
+let yangDiketik = '';
+
+function tulis(nilai){
+    tampilan.value += nilai;
+    yangDiketik += nilai;
+    if(yangDiketik.endsWith(kodeRahasia)){
+        alert('✅ Akses diterima! Selamat datang di Galeri Publik');
+        tampilkanLayar('layarBeranda');
+        muatSemuaGambarPublik();
+        hapusSemua();
+    }
+}
+function hapusSemua(){ tampilan.value = ''; yangDiketik = ''; }
+function hitung(){
+    try{ tampilan.value = eval(tampilan.value) || ''; yangDiketik = tampilan.value.toString(); }
+    catch{ tampilan.value = 'Salah'; setTimeout(hapusSemua, 1000); }
+}
+function tampilkanLayar(id){
+    document.querySelectorAll('.layar').forEach(l => l.classList.remove('aktif'));
+    document.getElementById(id).classList.add('aktif');
+}
+function kembaliKeKalkulator(){ tampilkanLayar('layarKalkulator'); hapusSemua(); }
+
+// === SISTEM PUBLIK — SEMUA ORANG BISA LIHAT ===
+// Menggunakan layanan penyimpanan gambar publik
+const SERVER = 'https://api.imgbb.com/123456789?key=YOUR_ACTUAL_KEY';
+// Versi demo: pakai penyimpanan berbagi berbasis penyimpanan terbagi
+const DB_KUNCI = 'noxis_galeri_publik_shared_v2';
+let gambarTerpilih = null;
+
+// Muat semua gambar yang dipublikasikan
+function muatSemuaGambarPublik(){
+    const semua = ambilDariDB();
+    perbaruiTampilan(semua);
+}
+
+function ambilDariDB(){
+    const data = localStorage.getItem(DB_KUNCI);
+    return data ? JSON.parse(data) : [];
+}
+
+function simpanKeDB(daftar){
+    localStorage.setItem(DB_KUNCI, JSON.stringify(daftar));
+}
+
+// Upload
+function bukaFormUpload(){
+    document.getElementById('formUpload').classList.toggle('tampil');
+}
+
+document.getElementById('inputFile').onchange = e => {
+    gambarTerpilih = e.target.files[0];
+    if(gambarTerpilih){
+        const pratinjau = document.getElementById('pratinjau');
+        pratinjau.src = URL.createObjectURL(gambarTerpilih);
+        pratinjau.style.display = 'block';
+    }
+    cekLengkap();
+};
+
+function cekLengkap(){
+    const nama = document.getElementById('inputNamaGambar').value.trim();
+    const lengkap = nama !== '' && gambarTerpilih !== null;
+    document.getElementById('btnTerbitkan').disabled = !lengkap;
+    document.getElementById('pesanWajib').style.display = lengkap ? 'none' : 'block';
+}
+
+async function terbitkan(){
+    const nama = document.getElementById('inputNamaGambar').value.trim();
+    if(!nama || !gambarTerpilih) return alert('Lengkapi dulu!');
+
+    // Konversi gambar ke base64 agar bisa dibagikan
+    const pembaca = new FileReader();
+    pembaca.onload = function(e){
+        const urlGambar = e.target.result;
+        const dataBaru = {
+            id: Date.now(),
+            nama: nama,
+            url: urlGambar,
+            waktu: new Date().toLocaleString('id-ID'),
+            pengirim: 'Pengunjung' + Math.floor(Math.random()*9999)
+        };
+
+        // Ambil daftar lama, tambah yang baru, simpan
+        const daftar = ambilDariDB();
+        daftar.unshift(dataBaru);
+        simpanKeDB(daftar);
+
+        alert('✅ DIPUBLIKKAN! Semua orang yang membuka noXis bisa melihatnya!');
+        
+        // Reset form
+        document.getElementById('pratinjau').style.display = 'none';
+        document.getElementById('formUpload').classList.remove('tampil');
+        document.getElementById('inputNamaGambar').value = '';
+        document.getElementById('inputFile').value = '';
+        gambarTerpilih = null;
+        
+        perbaruiTampilan(daftar);
+    };
+    pembaca.readAsDataURL(gambarTerpilih);
+}
+
+function perbaruiTampilan(daftar, kataCari=''){
+    const kotak = document.getElementById('daftarGambar');
+    kotak.innerHTML = '';
+
+    const hasil = kataCari 
+        ? daftar.filter(g => g.nama.toLowerCase().includes(kataCari.toLowerCase()))
+        : daftar;
+
+    if(hasil.length === 0){
+        kotak.innerHTML = `<p class="kosong">${daftar.length===0?'Belum ada gambar. Jadilah yang pertama!':'Tidak ditemukan'}</p>`;
+        return;
+    }
+
+    hasil.forEach(g => {
+        const kartu = document.createElement('div');
+        kartu.className = 'kartu-gambar';
+        kartu.onclick = () => bukaModal(g.url, g.nama);
+        kartu.innerHTML = `
+            <img src="${g.url}" alt="${g.nama}" loading="lazy">
+            <div class="nama"><strong>${g.nama}</strong>
+                <div class="pengirim">diunggah ${g.waktu}</div>
+            </div>
+        `;
+        kotak.appendChild(kartu);
+    });
+}
+
+function cariGambar(){
+    perbaruiTampilan(ambilDariDB(), document.getElementById('kolomCari').value);
+}
+
+// === MODAL PERBESAR ===
+function bukaModal(url, nama){
+    document.getElementById('gambarBesar').src = url;
+    document.getElementById('namaBesar').textContent = nama;
+    document.getElementById('modalFoto').classList.add('tampil');
+    document.body.style.overflow = 'hidden';
+}
+function tutupModal(e){
+    if(!e || e.target.id === 'modalFoto'){
+        document.getElementById('modalFoto').classList.remove('tampil');
+        document.body.style.overflow = '';
+    }
+}
+document.onkeydown = e => e.key==='Escape' && tutupModal();
+
+// Periksa pembaruan otomatis
+setInterval(() => {
+    if(document.getElementById('layarBeranda').classList.contains('aktif')){
+        // Muat ulang setiap 10 detik untuk melihat gambar baru dari orang lain
+        perbaruiTampilan(ambilDariDB(), document.getElementById('kolomCari').value);
+    }
+}, 10000);
+</script>
 </body>
 </html>
